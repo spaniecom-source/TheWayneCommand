@@ -1,0 +1,1212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>The Wayne Command</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root{
+  --bg:#080808; --bg1:#0e0e0e; --bg2:#141414; --bg3:#1c1c1c;
+  --border:#1e1e1e; --border2:#2a2a2a;
+  --gold:#c9973a; --gold2:#e8b86d; --goldd:#c9973a14;
+  --text:#edeae4; --text2:#777; --text3:#383838;
+  --green:#4caf7d; --red:#e05c5c; --blue:#4a90d9; --purple:#9b7fd4;
+  --font:'Syne',sans-serif; --mono:'DM Mono',monospace;
+  --r:6px; --r2:10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:var(--bg);color:var(--text);font-family:var(--font);height:100vh;overflow:hidden;}
+
+/* grain */
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:9999;opacity:.45;}
+
+/* layout */
+.os{display:grid;grid-template-rows:46px 1fr;height:100vh;}
+
+/* topbar */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 22px;border-bottom:1px solid var(--border);background:var(--bg);z-index:100;}
+.tb-logo{font-size:11px;font-weight:800;letter-spacing:.22em;color:var(--gold);text-transform:uppercase;font-family:var(--mono);}
+.tb-sep{width:1px;height:16px;background:var(--border2);}
+.tb-date{font-size:10px;color:var(--text3);font-family:var(--mono);}
+.tb-tabs{display:flex;gap:2px;}
+.tb-tab{font-size:9px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:4px 11px;border-radius:99px;border:1px solid transparent;background:transparent;color:var(--text3);cursor:pointer;font-family:var(--mono);transition:all .15s;}
+.tb-tab:hover{color:var(--text2);}
+.tb-tab.active{background:var(--gold);color:#000;border-color:var(--gold);}
+.tb-right{display:flex;align-items:center;gap:14px;}
+.tb-clock{font-size:14px;font-weight:400;font-family:var(--mono);color:var(--text2);letter-spacing:.06em;}
+.tb-left{display:flex;align-items:center;gap:14px;}
+
+/* panels */
+.main{overflow:hidden;display:grid;}
+.panel{display:none;height:100%;overflow:hidden;}
+.panel.active{display:grid;}
+#panel-overview {grid-template-columns:300px 1fr 310px;}
+#panel-agenda   {grid-template-columns:1fr 320px;}
+#panel-todos    {grid-template-columns:1fr 340px;}
+#panel-wayne    {grid-template-columns:360px 1fr;}
+#panel-body     {grid-template-columns:1fr 1fr 1fr;}
+#panel-portfolio{grid-template-columns:1fr;}
+
+/* columns */
+.col{height:100%;overflow-y:auto;padding:20px;border-right:1px solid var(--border);}
+.col:last-child{border-right:none;}
+.col::-webkit-scrollbar{width:0;}
+.col-dark{background:var(--bg);}
+
+/* col title */
+.col-title{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;font-family:var(--mono);}
+
+/* section label */
+.slbl{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;margin-top:20px;font-family:var(--mono);}
+.slbl:first-child{margin-top:0;}
+
+/* cards */
+.card{background:var(--bg1);border:1px solid var(--border);border-radius:var(--r2);padding:14px;margin-bottom:10px;}
+
+/* progress bar */
+.pb-wrap{background:var(--bg2);border-radius:99px;height:2px;overflow:hidden;}
+.pb-fill{height:100%;border-radius:99px;background:linear-gradient(90deg,var(--gold),var(--gold2));}
+
+/* year countdown blocks */
+.cd-blocks{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:10px;}
+.cd-block{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r2);padding:12px 6px;text-align:center;}
+.cd-num{font-size:24px;font-weight:800;font-family:var(--mono);color:var(--text);line-height:1;}
+.cd-unit{font-size:8px;color:var(--text3);margin-top:4px;letter-spacing:.1em;text-transform:uppercase;font-family:var(--mono);}
+.yr-lbl{display:flex;justify-content:space-between;font-size:9px;color:var(--text3);margin-top:5px;font-family:var(--mono);}
+
+/* milestone cards */
+.ms-card{border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;margin-bottom:8px;position:relative;}
+.ms-img{width:100%;height:72px;object-fit:cover;display:block;background:var(--bg2);}
+.ms-img-placeholder{width:100%;height:72px;background:var(--bg2);display:flex;align-items:center;justify-content:center;}
+.ms-body{padding:10px 12px;background:var(--bg1);}
+.ms-label{font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px;}
+.ms-date{font-size:9px;color:var(--text3);font-family:var(--mono);}
+.ms-days{font-size:20px;font-weight:800;font-family:var(--mono);line-height:1;}
+.ms-bar{height:2px;background:var(--bg2);margin-top:8px;border-radius:99px;overflow:hidden;}
+.ms-bar-fill{height:100%;border-radius:99px;}
+.ms-del{position:absolute;top:6px;right:6px;background:rgba(8,8,8,.7);border:none;color:var(--text3);cursor:pointer;font-size:12px;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .15s,color .15s;}
+.ms-card:hover .ms-del{opacity:1;}
+.ms-del:hover{color:var(--red)!important;}
+
+/* modal */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;}
+.modal-bg.open{display:flex;}
+.modal{background:var(--bg1);border:1px solid var(--border2);border-radius:var(--r2);padding:22px;width:340px;max-width:90vw;}
+.modal-title{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--text3);font-family:var(--mono);margin-bottom:16px;}
+.modal-row{margin-bottom:8px;}
+.modal-lbl{font-size:9px;color:var(--text3);font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px;}
+.modal-actions{display:flex;gap:6px;margin-top:14px;}
+
+/* todos */
+.todo-item{display:flex;align-items:flex-start;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
+.todo-item:last-child{border-bottom:none;padding-bottom:0;}
+.todo-item:first-child{padding-top:0;}
+.chk{width:15px;height:15px;min-width:15px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;margin-top:2px;transition:all .2s;cursor:pointer;flex-shrink:0;}
+.chk.done{background:var(--gold);border-color:var(--gold);}
+.chk.done::after{content:'';width:3px;height:6px;border:1.5px solid #000;border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px);display:block;}
+.todo-txt{font-size:12px;color:var(--text);line-height:1.4;flex:1;cursor:pointer;}
+.todo-txt.done{color:var(--text3);text-decoration:line-through;}
+.ttag{font-size:8px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:99px;white-space:nowrap;align-self:center;flex-shrink:0;font-family:var(--mono);}
+.tag-b{background:#1a2d42;color:#4a90d9;} .tag-p{background:#1a2a1a;color:#4caf7d;}
+.tag-h{background:#2d1a1a;color:#e05c5c;} .tag-m{background:#2a2210;color:#c9973a;}
+.item-del{background:none;border:none;color:transparent;cursor:pointer;font-size:12px;padding:0 2px;transition:color .15s;align-self:center;flex-shrink:0;}
+.todo-item:hover .item-del{color:var(--text3);}
+.item-del:hover{color:var(--red)!important;}
+
+/* inputs */
+.inp{font-size:11px;padding:7px 10px;border-radius:var(--r);border:1px solid var(--border2);background:var(--bg2);color:var(--text);outline:none;font-family:var(--mono);width:100%;transition:border-color .15s;}
+.inp:focus{border-color:var(--gold);}
+.sel{font-size:10px;padding:7px 8px;border-radius:var(--r);border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:var(--mono);cursor:pointer;outline:none;}
+.btn{font-size:9px;font-weight:700;padding:6px 12px;border-radius:var(--r);border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;transition:all .15s;white-space:nowrap;}
+.btn:hover{border-color:var(--gold);color:var(--gold);}
+.btn-gold{background:var(--gold);border-color:var(--gold);color:#000;}
+.btn-gold:hover{background:var(--gold2);border-color:var(--gold2);color:#000;}
+.inp-row{display:flex;gap:6px;margin-top:8px;align-items:center;}
+.status-txt{font-size:9px;color:var(--text3);font-family:var(--mono);margin-top:5px;min-height:12px;}
+
+/* metrics */
+.metric-big{font-size:26px;font-weight:800;font-family:var(--mono);color:var(--text);line-height:1;}
+.metric-sub{font-size:9px;color:var(--text3);font-family:var(--mono);margin-top:3px;}
+.chart-wrap{position:relative;height:100px;margin:10px 0 6px;}
+.chart-wrap-lg{position:relative;height:130px;margin:10px 0 6px;}
+
+/* training */
+.train-ring{width:64px;height:64px;border-radius:50%;border:2px solid var(--border2);display:flex;flex-direction:column;align-items:center;justify-content:center;flex-shrink:0;transition:border-color .3s;}
+.train-ring-num{font-size:20px;font-weight:800;font-family:var(--mono);color:var(--gold);line-height:1;}
+.train-ring-lbl{font-size:8px;color:var(--text3);letter-spacing:.06em;font-family:var(--mono);}
+.train-day{display:flex;align-items:center;gap:6px;padding:5px 0;border-bottom:1px solid var(--border);}
+.train-day:last-child{border-bottom:none;}
+.train-day-lbl{font-size:9px;font-weight:700;color:var(--text3);width:26px;min-width:26px;font-family:var(--mono);}
+.train-day-lbl.today-lbl{color:var(--gold);}
+.train-pill{font-size:9px;font-weight:700;padding:2px 7px;border-radius:99px;border:1px solid var(--border2);color:var(--text3);cursor:pointer;transition:all .15s;font-family:var(--mono);background:transparent;letter-spacing:.04em;}
+.train-pill.active{background:var(--gold);border-color:var(--gold);color:#000;}
+.train-pill.rest-pill.active{background:var(--bg3);border-color:var(--border2);color:var(--text2);}
+
+/* wayne standard */
+.ws-habit{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:opacity .15s;}
+.ws-habit:last-child{border-bottom:none;}
+.ws-habit:hover{opacity:.75;}
+.ws-chk{width:18px;height:18px;min-width:18px;border-radius:5px;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
+.ws-chk.done{background:var(--gold);border-color:var(--gold);}
+.ws-chk.done::after{content:'';width:4px;height:7px;border:1.5px solid #000;border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px);display:block;}
+.ws-habit-name{font-size:12px;color:var(--text);flex:1;}
+.ws-habit-name.done{color:var(--text3);text-decoration:line-through;}
+.ws-score-ring{display:flex;align-items:center;justify-content:center;width:52px;height:52px;border-radius:50%;border:2px solid var(--border2);font-size:14px;font-weight:800;font-family:var(--mono);flex-shrink:0;transition:all .3s;}
+.ws-score-ring.low{border-color:var(--red);color:var(--red);}
+.ws-score-ring.mid{border-color:var(--gold);color:var(--gold);}
+.ws-score-ring.high{border-color:var(--green);color:var(--green);}
+.ws-score-ring.perfect{border-color:var(--blue);color:var(--blue);box-shadow:0 0 14px #4a90d928;}
+.ws-dot{width:10px;height:10px;border-radius:3px;background:var(--bg2);border:1px solid var(--border);}
+.ws-dot.full{background:var(--gold);}
+.ws-dot.partial{background:var(--goldd);border-color:var(--gold);}
+.ws-rating-btn{font-size:10px;font-weight:700;font-family:var(--mono);padding:4px 8px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;transition:all .15s;}
+.ws-rating-btn:hover{border-color:var(--gold);color:var(--gold);}
+.ws-rating-btn.active{background:var(--gold);border-color:var(--gold);color:#000;}
+.ws-reflection{width:100%;font-size:11px;padding:10px;border-radius:var(--r);border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:var(--mono);resize:none;outline:none;min-height:72px;margin-top:8px;transition:border-color .15s;}
+.ws-reflection:focus{border-color:var(--gold);}
+.ws-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px;}
+.ws-stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:9px 6px;text-align:center;}
+.ws-stat-num{font-size:15px;font-weight:800;font-family:var(--mono);color:var(--text);}
+.ws-stat-lbl{font-size:8px;color:var(--text3);margin-top:2px;text-transform:uppercase;letter-spacing:.06em;font-family:var(--mono);}
+
+/* calendar */
+.cal-nav-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.cal-nav{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px;padding:0 4px;transition:color .15s;}
+.cal-nav:hover{color:var(--gold);}
+.cal-period{font-size:13px;font-weight:700;color:var(--text);font-family:var(--mono);}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cal-dlbl{font-size:8px;color:var(--text3);text-align:center;padding:2px 0 4px;letter-spacing:.08em;font-weight:700;text-transform:uppercase;font-family:var(--mono);}
+.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:10px;font-family:var(--mono);color:var(--text2);border-radius:var(--r);position:relative;cursor:pointer;transition:all .15s;}
+.cal-day:hover{background:var(--bg2);}
+.cal-day.today{background:var(--gold);color:#000;font-weight:700;}
+.cal-day.has-ev::after{content:'';width:3px;height:3px;background:var(--blue);border-radius:50%;position:absolute;bottom:2px;left:50%;transform:translateX(-50%);}
+.cal-day.today.has-ev::after{background:#000;}
+.cal-day.empty{opacity:0;pointer-events:none;}
+.ev-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);}
+.ev-item:last-child{border-bottom:none;}
+.ev-dot{width:5px;height:5px;min-width:5px;border-radius:50%;flex-shrink:0;}
+.ev-name{font-size:11px;color:var(--text);flex:1;}
+.ev-time{font-size:9px;color:var(--text3);font-family:var(--mono);}
+.ev-del{background:none;border:none;color:transparent;cursor:pointer;font-size:12px;transition:color .15s;}
+.ev-item:hover .ev-del{color:var(--text3);}
+.ev-del:hover{color:var(--red)!important;}
+
+/* stocks */
+.stock-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);}
+.stock-row:last-child{border-bottom:none;}
+.stock-ticker{font-size:11px;font-weight:700;font-family:var(--mono);color:var(--text);width:40px;}
+.stock-bar-wrap{flex:1;background:var(--bg2);border-radius:99px;height:2px;overflow:hidden;}
+.stock-bar{height:100%;border-radius:99px;}
+.stock-price{font-size:10px;font-family:var(--mono);color:var(--text2);width:50px;text-align:right;}
+.stock-chg{font-size:10px;font-weight:700;font-family:var(--mono);width:46px;text-align:right;}
+
+/* net worth */
+.nw-row{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);}
+.nw-row:last-child{border-bottom:none;}
+.nw-label{font-size:11px;color:var(--text);flex:1;}
+.nw-val{font-size:11px;font-family:var(--mono);font-weight:700;}
+.nw-del{background:none;border:none;color:transparent;cursor:pointer;font-size:12px;transition:color .15s;}
+.nw-row:hover .nw-del{color:var(--text3);}
+.nw-del:hover{color:var(--red)!important;}
+
+/* quote */
+.quote-block{border-left:2px solid var(--border2);padding:10px 14px;margin-bottom:0;}
+.quote-txt{font-size:11px;color:var(--text2);line-height:1.7;font-family:var(--mono);}
+.quote-src{font-size:9px;color:var(--text3);margin-top:6px;font-family:var(--mono);}
+
+/* integration guide */
+.int-step{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);}
+.int-step:last-child{border-bottom:none;}
+.int-num{font-size:10px;font-weight:800;font-family:var(--mono);color:var(--gold);width:18px;min-width:18px;margin-top:1px;}
+.int-body{flex:1;}
+.int-title{font-size:11px;font-weight:700;color:var(--text);margin-bottom:3px;}
+.int-desc{font-size:10px;color:var(--text3);font-family:var(--mono);line-height:1.6;}
+.int-code{font-size:9px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:6px 8px;font-family:var(--mono);color:var(--text2);margin-top:5px;word-break:break-all;line-height:1.5;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px);}to{opacity:1;transform:translateY(0);}}
+.col,.panel.active>*{animation:fadeUp .2s ease forwards;}
+</style>
+</head>
+<body>
+<div class="os">
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="tb-left">
+    <div class="tb-logo">The Wayne Command</div>
+    <div class="tb-sep"></div>
+    <div class="tb-date" id="topDate"></div>
+  </div>
+  <div class="tb-tabs">
+    <button class="tb-tab active"  onclick="showPanel('overview',this)">Overview</button>
+    <button class="tb-tab"         onclick="showPanel('agenda',this)">Agenda</button>
+    <button class="tb-tab"         onclick="showPanel('todos',this)">Mandate</button>
+    <button class="tb-tab"         onclick="showPanel('wayne',this)">Wayne Standard</button>
+    <button class="tb-tab"         onclick="showPanel('body',this)">Body & Finance</button>
+    <button class="tb-tab"         onclick="showPanel('portfolio',this)">Portfolio</button>
+    <button class="tb-tab"         onclick="showPanel('connect',this)">Connect</button>
+  </div>
+  <div class="tb-right">
+    <div class="tb-sep"></div>
+    <div class="tb-clock" id="topClock">00:00:00</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- ══ OVERVIEW ══ -->
+<div class="panel active" id="panel-overview">
+
+  <!-- LEFT: Year + Milestones -->
+  <div class="col">
+    <div class="col-title">
+      <span>Countdowns</span>
+      <button class="btn" onclick="openMsModal()" style="padding:3px 8px;font-size:8px;">+ Add</button>
+    </div>
+
+    <div class="slbl">Year 2026</div>
+    <div class="card" style="padding:14px;">
+      <div class="cd-blocks" id="yrBlocks"></div>
+      <div class="pb-wrap"><div class="pb-fill" id="yrPb" style="width:0%"></div></div>
+      <div class="yr-lbl"><span>Jan 1</span><span id="yrPct">0%</span><span>Dec 31</span></div>
+    </div>
+
+    <div class="slbl">Milestones</div>
+    <div id="msList"></div>
+  </div>
+
+  <!-- MID: Training + Mandate preview -->
+  <div class="col">
+    <div class="col-title">
+      <span>This week</span>
+      <span style="font-size:9px;font-family:var(--mono);color:var(--text3);">Target: 5–6x / week</span>
+    </div>
+
+    <div class="slbl">Training</div>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+        <div class="train-ring" id="trainRing">
+          <div class="train-ring-num" id="trainCount">0</div>
+          <div class="train-ring-lbl">of 6</div>
+        </div>
+        <div>
+          <div style="font-size:13px;font-weight:700;color:var(--text);" id="trainLabel">No sessions yet</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:2px;font-family:var(--mono);" id="trainSub">Tap a day to log</div>
+        </div>
+      </div>
+      <div id="trainDays"></div>
+    </div>
+
+    <div class="slbl">Today's mandate</div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:10px;color:var(--text3);font-family:var(--mono);" id="mandateProg">0/0</span>
+        <div class="pb-wrap" style="width:100px;"><div class="pb-fill" id="mandatePb" style="width:0%"></div></div>
+      </div>
+      <div id="mandatePreview"></div>
+      <div style="display:flex;gap:6px;margin-top:10px;">
+        <button class="btn" style="flex:1;font-size:8px;" onclick="syncNotion()">↻ Sync Notion</button>
+        <button class="btn" style="flex:1;font-size:8px;" onclick="showPanel('todos',document.querySelectorAll('.tb-tab')[2])">View all →</button>
+      </div>
+      <div class="status-txt" id="notionStatus"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT: Portfolio + Quote + Net Worth -->
+  <div class="col">
+    <div class="col-title">
+      <span>Portfolio</span>
+      <a href="https://spaniecom-source.github.io/PortofolioTracker/" target="_blank" style="font-size:9px;color:var(--gold);text-decoration:none;font-family:var(--mono);letter-spacing:.08em;text-transform:uppercase;">Full view ↗</a>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+        <div>
+          <div class="metric-big" id="pfTotal" style="font-size:22px;">—</div>
+          <div class="metric-sub" id="pfEur"></div>
+        </div>
+        <div id="pfBadge" style="display:none;font-size:10px;font-weight:700;padding:3px 8px;border-radius:99px;font-family:var(--mono);"></div>
+      </div>
+      <div id="pfStocks"></div>
+      <div class="status-txt" id="pfStatus">Loading...</div>
+    </div>
+
+    <div class="slbl">Net worth</div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;">
+        <div class="metric-big" id="nwTotal" style="font-size:20px;">€—</div>
+        <button class="btn" onclick="toggleNwForm()" style="padding:3px 8px;font-size:8px;">+ Add</button>
+      </div>
+      <div id="nwItems"></div>
+      <div id="nwForm" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px;">
+        <input class="inp" id="nwLabel" placeholder="Label (e.g. ING Savings)" style="margin-bottom:6px;"/>
+        <div class="inp-row" style="margin-top:0;">
+          <input class="inp" id="nwAmt" type="number" placeholder="€ amount"/>
+          <button class="btn btn-gold" onclick="addNWItem()">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="slbl">Quote</div>
+    <div class="quote-block">
+      <div class="quote-txt" id="quoteTxt">—</div>
+      <div class="quote-src" id="quoteSrc"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ AGENDA ══ -->
+<div class="panel" id="panel-agenda">
+  <div class="col">
+    <div class="col-title"><span>Calendar</span></div>
+    <div class="cal-nav-row">
+      <button class="cal-nav" onclick="navCal(-1)">&#8249;</button>
+      <div class="cal-period" id="calPeriod"></div>
+      <button class="cal-nav" onclick="navCal(1)">&#8250;</button>
+    </div>
+    <div id="calBody"></div>
+    <div style="display:flex;gap:4px;margin-top:12px;">
+      <button class="btn" id="cvMonth" onclick="setCalView('month')">Month</button>
+      <button class="btn" id="cvWeek"  onclick="setCalView('week')">Week</button>
+      <button class="btn" id="cvDay"   onclick="setCalView('day')">Day</button>
+    </div>
+  </div>
+  <div class="col col-dark">
+    <div class="col-title"><span>Add event</span></div>
+    <div style="display:flex;flex-direction:column;gap:7px;">
+      <input class="inp" id="evTitle" placeholder="Event title"/>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <input class="inp" id="evDate" type="date"/>
+        <select class="sel" id="evColor" style="width:100%;">
+          <option value="#c9973a">Gold</option>
+          <option value="#4a90d9">Blue</option>
+          <option value="#4caf7d">Green</option>
+          <option value="#e05c5c">Red</option>
+          <option value="#9b7fd4">Purple</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <input class="inp" id="evStart" type="time"/>
+        <input class="inp" id="evEnd" type="time"/>
+      </div>
+      <button class="btn btn-gold" onclick="addEvent()">+ Add to calendar</button>
+      <div class="status-txt" id="calStatus"></div>
+    </div>
+    <div class="slbl" style="margin-top:20px;">Upcoming 7 days</div>
+    <div id="calUpcoming"></div>
+  </div>
+</div>
+
+<!-- ══ MANDATE ══ -->
+<div class="panel" id="panel-todos">
+  <div class="col">
+    <div class="col-title">
+      <span>Operation Mandate</span>
+      <span id="todosProg" style="font-size:9px;font-family:var(--mono);color:var(--text3);"></span>
+    </div>
+    <div class="pb-wrap" style="margin-bottom:14px;"><div class="pb-fill" id="todosPb" style="width:0%"></div></div>
+    <div id="todosList"></div>
+    <div class="inp-row" style="margin-top:14px;">
+      <input class="inp" id="todoInp" placeholder="Add task..." onkeydown="if(event.key==='Enter')addTodo()"/>
+      <select class="sel" id="todoTag">
+        <option value="m">Mindset</option>
+        <option value="b">Business</option>
+        <option value="p">Personal</option>
+        <option value="h">Health</option>
+      </select>
+      <button class="btn btn-gold" onclick="addTodo()">+</button>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:8px;">
+      <button class="btn" style="flex:1;" onclick="syncNotion()">↻ Pull Notion</button>
+      <button class="btn" style="flex:1;" onclick="pushNotion()">↑ Push Notion</button>
+    </div>
+    <div class="status-txt" id="todosStatus"></div>
+  </div>
+  <div class="col col-dark">
+    <div class="col-title"><span>Tag reference</span></div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:20px;">
+      <div style="display:flex;align-items:center;gap:10px;"><span class="ttag tag-m">Mindset</span><span style="font-size:10px;color:var(--text3);font-family:var(--mono);">Journal, manifest, meditate</span></div>
+      <div style="display:flex;align-items:center;gap:10px;"><span class="ttag tag-b">Business</span><span style="font-size:10px;color:var(--text3);font-family:var(--mono);">SmartEdge, Xtend, JYSK</span></div>
+      <div style="display:flex;align-items:center;gap:10px;"><span class="ttag tag-p">Personal</span><span style="font-size:10px;color:var(--text3);font-family:var(--mono);">Life admin, Jade, crew</span></div>
+      <div style="display:flex;align-items:center;gap:10px;"><span class="ttag tag-h">Health</span><span style="font-size:10px;color:var(--text3);font-family:var(--mono);">Gym, kickboxing, diet, sleep</span></div>
+    </div>
+    <div class="col-title"><span>Notion sync</span></div>
+    <div style="font-size:10px;color:var(--text3);font-family:var(--mono);line-height:1.8;">
+      Pull → fetches latest todos from Operation Mandate.<br>
+      Push → updates Notion with current completion state.<br><br>
+      True auto-sync: go to the <strong style="color:var(--text2);">Connect</strong> tab.
+    </div>
+  </div>
+</div>
+
+<!-- ══ WAYNE STANDARD ══ -->
+<div class="panel" id="panel-wayne">
+  <div class="col">
+    <div class="col-title">
+      <span>Today's habits</span>
+      <div class="ws-score-ring" id="wsPanelScore">0/8</div>
+    </div>
+    <div id="wsPanelHabits"></div>
+    <div style="margin-top:16px;">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text3);margin-bottom:7px;font-family:var(--mono);">Day rating</div>
+      <div style="display:flex;gap:4px;flex-wrap:wrap;" id="wsRatingGrid"></div>
+    </div>
+    <textarea class="ws-reflection" id="wsReflection" placeholder="Reflection..." rows="3"></textarea>
+    <div class="inp-row" style="margin-top:8px;">
+      <button class="btn btn-gold" style="flex:1;" onclick="saveWayne()">Save day</button>
+      <button class="btn" onclick="pushWayne()">↑ Push Notion</button>
+    </div>
+    <div class="status-txt" id="wayneStatus"></div>
+  </div>
+  <div class="col col-dark">
+    <div class="col-title"><span>Week overview</span></div>
+    <div class="ws-stats" id="wsStats"></div>
+    <div class="slbl">30-day streak</div>
+    <div class="card">
+      <div style="display:flex;gap:4px;flex-wrap:wrap;" id="wsStreak30"></div>
+      <div style="display:flex;gap:14px;margin-top:10px;">
+        <div style="display:flex;align-items:center;gap:5px;font-size:9px;color:var(--text3);font-family:var(--mono);"><div style="width:9px;height:9px;border-radius:3px;background:var(--gold);"></div>8/8</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:9px;color:var(--text3);font-family:var(--mono);"><div style="width:9px;height:9px;border-radius:3px;background:var(--goldd);border:1px solid var(--gold);"></div>Partial</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:9px;color:var(--text3);font-family:var(--mono);"><div style="width:9px;height:9px;border-radius:3px;background:var(--bg2);border:1px solid var(--border);"></div>Missed</div>
+      </div>
+    </div>
+    <div class="slbl">This week</div>
+    <div class="card">
+      <div style="position:relative;height:110px;"><canvas id="wsWeekChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BODY & FINANCE ══ -->
+<div class="panel" id="panel-body">
+  <div class="col">
+    <div class="col-title"><span>Body weight</span></div>
+    <div class="metric-big" id="bwVal">—</div>
+    <div class="metric-sub" id="bwDelta" style="margin-bottom:8px;"></div>
+    <div class="chart-wrap-lg"><canvas id="bwChart"></canvas></div>
+    <div class="inp-row">
+      <input class="inp" id="bwInp" type="number" placeholder="kg" step="0.1"/>
+      <button class="btn btn-gold" onclick="logBW()">Log</button>
+    </div>
+    <div class="slbl" style="margin-top:16px;">Recent</div>
+    <div id="bwLog"></div>
+  </div>
+  <div class="col col-dark">
+    <div class="col-title"><span>Savings</span></div>
+    <div style="display:flex;gap:4px;margin-bottom:12px;">
+      <button class="btn btn-gold" id="savTabPers" onclick="setSavTab('personal',this)">Personal</button>
+      <button class="btn" id="savTabBiz" onclick="setSavTab('business',this)">Business</button>
+    </div>
+    <div class="metric-big" id="savVal">—</div>
+    <div class="chart-wrap-lg"><canvas id="savChart"></canvas></div>
+    <div class="inp-row">
+      <input class="inp" id="savInp" type="number" placeholder="€" step="10"/>
+      <button class="btn btn-gold" onclick="logSav()">Log</button>
+    </div>
+    <div class="slbl" style="margin-top:16px;">Recent</div>
+    <div id="savLog"></div>
+  </div>
+  <div class="col">
+    <div class="col-title"><span>Goal countdowns</span></div>
+    <div id="bodyGoals"></div>
+  </div>
+</div>
+
+<!-- ══ PORTFOLIO ══ -->
+<div class="panel" id="panel-portfolio">
+  <div class="col" style="padding:0;border:none;">
+    <iframe src="https://spaniecom-source.github.io/PortofolioTracker/" style="width:100%;height:100%;border:none;display:block;" title="Portfolio tracker"></iframe>
+  </div>
+</div>
+
+<!-- ══ CONNECT ══ -->
+<div class="panel" id="panel-connect">
+  <div class="col" style="max-width:640px;">
+    <div class="col-title"><span>Integration guide</span></div>
+
+    <div class="slbl">Notion — Operation Mandate todos</div>
+    <div class="card">
+      <div class="int-step">
+        <div class="int-num">01</div>
+        <div class="int-body">
+          <div class="int-title">Create a Notion integration</div>
+          <div class="int-desc">Go to notion.so/my-integrations → New integration → give it a name like "Wayne Command" → copy the Internal Integration Token.</div>
+          <div class="int-code">https://www.notion.so/my-integrations</div>
+        </div>
+      </div>
+      <div class="int-step">
+        <div class="int-num">02</div>
+        <div class="int-body">
+          <div class="int-title">Connect it to your Operation Mandate page</div>
+          <div class="int-desc">Open your Operation Mandate Notion page → ··· menu (top right) → Connections → add your integration. This gives it read/write access to that page only.</div>
+        </div>
+      </div>
+      <div class="int-step">
+        <div class="int-num">03</div>
+        <div class="int-body">
+          <div class="int-title">Get your database ID</div>
+          <div class="int-desc">Open the database in Notion in your browser. The URL looks like: notion.so/[workspace]/[DATABASE_ID]?v=... — copy the 32-character ID between the last / and the ?</div>
+        </div>
+      </div>
+      <div class="int-step">
+        <div class="int-num">04</div>
+        <div class="int-body">
+          <div class="int-title">Add credentials to this file</div>
+          <div class="int-desc">In the HTML file, find the JS section labelled NOTION CONFIG and paste in your token and database ID. The Pull/Push buttons will then call the API directly.</div>
+          <div class="int-code">const NOTION_TOKEN = 'secret_xxx...';<br>const NOTION_DB_ID = 'your-db-id-here';</div>
+        </div>
+      </div>
+      <div class="int-step" style="border:none;">
+        <div class="int-num">⚠</div>
+        <div class="int-body">
+          <div class="int-title">CORS limitation</div>
+          <div class="int-desc">Notion's API blocks direct browser calls. You need either: (a) a free Cloudflare Worker as a proxy — takes 10 min to set up, or (b) use Claude.ai with the Notion MCP connector already linked to your account — which is what the Sync buttons currently guide you to do.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slbl">Google Calendar</div>
+    <div class="card">
+      <div class="int-step">
+        <div class="int-num">01</div>
+        <div class="int-body">
+          <div class="int-title">Enable Google Calendar API</div>
+          <div class="int-desc">Go to console.cloud.google.com → New project → Enable Google Calendar API → Create credentials (OAuth 2.0 Client ID for a web app).</div>
+          <div class="int-code">https://console.cloud.google.com/apis/library/calendar-json.googleapis.com</div>
+        </div>
+      </div>
+      <div class="int-step">
+        <div class="int-num">02</div>
+        <div class="int-body">
+          <div class="int-title">Get an API key for read access</div>
+          <div class="int-desc">For read-only (just displaying events): Create credentials → API key → restrict it to Calendar API. Add it to the HTML under GCAL CONFIG. Your calendar must be set to public or you must use OAuth.</div>
+          <div class="int-code">const GCAL_API_KEY = 'AIza...';<br>const GCAL_ID = 'your@gmail.com';</div>
+        </div>
+      </div>
+      <div class="int-step" style="border:none;">
+        <div class="int-num">03</div>
+        <div class="int-body">
+          <div class="int-title">Fetch events</div>
+          <div class="int-desc">Once configured, the Agenda tab will pull live events from your Google Calendar using the public API endpoint. Tell me when you have the API key and I'll wire it up.</div>
+          <div class="int-code">https://www.googleapis.com/calendar/v3/calendars/{id}/events?key={key}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="slbl">Portfolio tracker</div>
+    <div class="card">
+      <div class="int-step">
+        <div class="int-num">01</div>
+        <div class="int-body">
+          <div class="int-title">Currently: iframe embed</div>
+          <div class="int-desc">The Portfolio tab iframes your existing tracker at spaniecom-source.github.io/PortofolioTracker — it's fully live. The Overview panel pulls live Yahoo Finance prices separately for the snapshot widget.</div>
+        </div>
+      </div>
+      <div class="int-step" style="border:none;">
+        <div class="int-num">02</div>
+        <div class="int-body">
+          <div class="int-title">To get real P&L on the Overview</div>
+          <div class="int-desc">Update your actual share counts in the STOCKS array in the JS. Find "const STOCKS = [" and edit the shares: value for each ticker to match your real positions. The prices are already live from Yahoo Finance.</div>
+          <div class="int-code">{ ticker:'NVDA', name:'Nvidia', shares: 5, color:'#4caf7d' }</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col col-dark">
+    <div class="col-title"><span>Status</span></div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div class="card-flat" style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:11px;color:var(--text);">Notion</span>
+        <span style="font-size:9px;font-family:var(--mono);color:var(--text3);">Manual sync</span>
+      </div>
+      <div class="card-flat" style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);">
+        <span style="font-size:11px;color:var(--text);">Google Calendar</span>
+        <span style="font-size:9px;font-family:var(--mono);color:var(--text3);">Not connected</span>
+      </div>
+      <div class="card-flat" style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);">
+        <span style="font-size:11px;color:var(--text);">Portfolio tracker</span>
+        <span style="font-size:9px;font-family:var(--mono);color:var(--green);">Live (iframe)</span>
+      </div>
+      <div class="card-flat" style="display:flex;justify-content:space-between;align-items:center;background:var(--bg2);">
+        <span style="font-size:11px;color:var(--text);">Yahoo Finance</span>
+        <span style="font-size:9px;font-family:var(--mono);color:var(--green);">Live (5 min cache)</span>
+      </div>
+    </div>
+    <div style="margin-top:20px;font-size:10px;color:var(--text3);font-family:var(--mono);line-height:1.8;">
+      Fastest path to full integration:<br><br>
+      1. Use Claude.ai with Notion + Google Calendar MCP connectors — both already linked to your account.<br><br>
+      2. For this file to call APIs directly, you need a Cloudflare Worker proxy (free, ~10 min setup). Ask me and I'll build it.
+    </div>
+  </div>
+</div>
+
+</div><!-- end main -->
+</div><!-- end os -->
+
+<!-- MILESTONE ADD MODAL -->
+<div class="modal-bg" id="msModal">
+  <div class="modal">
+    <div class="modal-title">Add Milestone</div>
+    <div class="modal-row">
+      <div class="modal-lbl">Label</div>
+      <input class="inp" id="msName" placeholder="e.g. Ibiza trip"/>
+    </div>
+    <div class="modal-row">
+      <div class="modal-lbl">Date</div>
+      <input class="inp" id="msDate" type="date"/>
+    </div>
+    <div class="modal-row">
+      <div class="modal-lbl">Accent colour</div>
+      <input class="inp" id="msColor" type="color" value="#c9973a" style="height:34px;padding:2px 6px;"/>
+    </div>
+    <div class="modal-row">
+      <div class="modal-lbl">Cover image URL <span style="color:var(--text3);">(optional)</span></div>
+      <input class="inp" id="msImg" placeholder="https://images.unsplash.com/..."/>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-gold" style="flex:1;" onclick="addMilestone()">Add milestone</button>
+      <button class="btn" onclick="closeMsModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─── STORAGE ─── */
+const sg = k => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : null; } catch { return null; } };
+const ss = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+
+/* ─── PANEL ─── */
+function showPanel(id, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tb-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  if (el) el.classList.add('active');
+  if (id === 'overview')  { renderMilestones(); renderMandatePreview(); renderTraining(); renderNW(); }
+  if (id === 'agenda')    { renderCal(); renderCalUpcoming(); }
+  if (id === 'todos')     { renderTodos(); }
+  if (id === 'wayne')     { renderWayne(); }
+  if (id === 'body')      { renderBW(); renderSav(); renderBodyGoals(); }
+}
+
+/* ─── CLOCK ─── */
+const DAYS  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+const MONTHS= ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MONS  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const WDS   = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+function tick() {
+  const n = new Date();
+  const pad = x => String(x).padStart(2,'0');
+  const c = document.getElementById('topClock'); if (c) c.textContent = pad(n.getHours())+':'+pad(n.getMinutes())+':'+pad(n.getSeconds());
+  const d = document.getElementById('topDate');  if (d) d.textContent = DAYS[n.getDay()]+', '+n.getDate()+' '+MONS[n.getMonth()]+' '+n.getFullYear();
+}
+tick(); setInterval(tick, 1000);
+
+/* ─── YEAR COUNTDOWN ─── */
+function renderYear() {
+  const now = new Date();
+  const end = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+  const diff = Math.max(0, end - now);
+  const d = Math.floor(diff / 864e5);
+  const h = Math.floor((diff % 864e5) / 36e5);
+  const m = Math.floor((diff % 36e5) / 6e4);
+  const s = Math.floor((diff % 6e4) / 1e3);
+  const pad = x => String(x).padStart(2,'0');
+  const g = document.getElementById('yrBlocks');
+  if (g) g.innerHTML = [['Days',d],['Hrs',h],['Min',m],['Sec',s]].map(([u,v]) =>
+    `<div class="cd-block"><div class="cd-num">${pad(v)}</div><div class="cd-unit">${u}</div></div>`).join('');
+  const start = new Date(now.getFullYear(),0,1);
+  const total = new Date(now.getFullYear()+1,0,1) - start;
+  const pct   = Math.round((now-start)/total*100);
+  const pb = document.getElementById('yrPb'); if (pb) pb.style.width = pct+'%';
+  const yp = document.getElementById('yrPct'); if (yp) yp.textContent = pct+'% complete';
+}
+renderYear(); setInterval(renderYear, 1000);
+
+/* ─── MILESTONES ─── */
+const DEFAULT_MS = [
+  { id:'ibiza',  label:'✈ Ibiza',        date:'2026-08-15', color:'#c9973a', img:'' },
+  { id:'dubai',  label:'🏙 Palm Dubai',   date:'2026-12-01', color:'#4caf7d', img:'' },
+  { id:'coffee', label:'☕ Black coffee', date:'2026-07-01', color:'#9b7fd4', img:'' },
+  { id:'jysk',   label:'🚪 Quit JYSK',    date:'2026-06-30', color:'#4a90d9', img:'' },
+];
+let milestones = sg('wc_ms') || [...DEFAULT_MS];
+function saveMS() { ss('wc_ms', milestones); }
+
+function renderMilestones() {
+  const now = new Date();
+  const el = document.getElementById('msList'); if (!el) return;
+  el.innerHTML = milestones.map(ms => {
+    const target   = new Date(ms.date + 'T00:00:00');
+    const days     = Math.max(0, Math.ceil((target - now) / 864e5));
+    const yearStart= new Date(now.getFullYear(),0,1);
+    const pct      = Math.min(100, Math.max(0, Math.round((now-yearStart)/(target-yearStart)*100)));
+    const imgHtml  = ms.img
+      ? `<img class="ms-img" src="${ms.img}" alt="${ms.label}" onerror="this.style.display='none'">`
+      : `<div class="ms-img-placeholder"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2a2a2a" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>`;
+    return `<div class="ms-card">
+      ${imgHtml}
+      <button class="ms-del" onclick="removeMS('${ms.id}')">✕</button>
+      <div class="ms-body">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+          <div>
+            <div class="ms-label">${ms.label}</div>
+            <div class="ms-date">${ms.date}</div>
+          </div>
+          <div style="text-align:right;">
+            <div class="ms-days" style="color:${ms.color};">${days}</div>
+            <div style="font-size:8px;color:var(--text3);font-family:var(--mono);">days left</div>
+          </div>
+        </div>
+        <div class="ms-bar"><div class="ms-bar-fill" style="width:${pct}%;background:${ms.color};"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+  renderBodyGoals();
+}
+
+function openMsModal()  { document.getElementById('msModal').classList.add('open'); document.getElementById('msName').focus(); }
+function closeMsModal() { document.getElementById('msModal').classList.remove('open'); }
+document.getElementById('msModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeMsModal(); });
+
+function addMilestone() {
+  const name  = document.getElementById('msName').value.trim();
+  const date  = document.getElementById('msDate').value;
+  const color = document.getElementById('msColor').value;
+  const img   = document.getElementById('msImg').value.trim();
+  if (!name || !date) return;
+  milestones.push({ id:'ms'+Date.now(), label:name, date, color, img });
+  saveMS(); closeMsModal();
+  ['msName','msDate','msImg'].forEach(id => { const e=document.getElementById(id); if(e)e.value=''; });
+  document.getElementById('msColor').value='#c9973a';
+  renderMilestones();
+}
+function removeMS(id) { milestones = milestones.filter(m => m.id !== id); saveMS(); renderMilestones(); }
+renderMilestones();
+
+function renderBodyGoals() {
+  const el = document.getElementById('bodyGoals'); if (!el) return;
+  const now = new Date();
+  el.innerHTML = milestones.map(ms => {
+    const target = new Date(ms.date + 'T00:00:00');
+    const days   = Math.max(0, Math.ceil((target - now) / 864e5));
+    const pct    = Math.min(100, Math.max(0, Math.round((now - new Date(now.getFullYear(),0,1)) / (target - new Date(now.getFullYear(),0,1)) * 100)));
+    return `<div class="card" style="padding:14px;margin-bottom:8px;">
+      <div style="font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:${ms.color};margin-bottom:6px;font-family:var(--mono);">${ms.label}</div>
+      <div class="metric-big" style="font-size:22px;">${days}</div>
+      <div style="font-size:9px;color:var(--text3);font-family:var(--mono);margin-bottom:8px;">days · ${ms.date}</div>
+      <div class="pb-wrap"><div class="pb-fill" style="width:${pct}%;background:${ms.color};"></div></div>
+    </div>`;
+  }).join('');
+}
+
+/* ─── QUOTE ─── */
+const QUOTES = [
+  {t:"The impediment to action advances action. What stands in the way becomes the way.",s:"Marcus Aurelius"},
+  {t:"We suffer more in imagination than in reality.",s:"Seneca"},
+  {t:"Hard choices, easy life. Easy choices, hard life.",s:"Jerzy Gregorek"},
+  {t:"Do not pray for an easy life, pray for the strength to endure a difficult one.",s:"Bruce Lee"},
+  {t:"Don't explain your philosophy. Embody it.",s:"Epictetus"},
+  {t:"Waste no more time arguing about what a good man should be. Be one.",s:"Marcus Aurelius"},
+  {t:"If it is not right, do not do it; if it is not true, do not say it.",s:"Marcus Aurelius"},
+  {t:"You have power over your mind, not outside events. Realize this, and you will find strength.",s:"Marcus Aurelius"},
+  {t:"Luck is what happens when preparation meets opportunity.",s:"Seneca"},
+  {t:"The first and greatest victory is to conquer yourself.",s:"Plato"},
+  {t:"He who is brave is free.",s:"Seneca"},
+  {t:"Conquer yourself before you try to conquer the world.",s:"René Descartes"},
+];
+function renderQuote() {
+  const today = new Date().toDateString();
+  let c = sg('wc_quote');
+  if (!c || c.date !== today) { c = { date: today, idx: Math.floor(Math.random()*QUOTES.length) }; ss('wc_quote',c); }
+  const q = QUOTES[c.idx % QUOTES.length];
+  const t = document.getElementById('quoteTxt'); if (t) t.textContent = '"'+q.t+'"';
+  const s = document.getElementById('quoteSrc'); if (s) s.textContent = '— ' + q.s;
+}
+renderQuote();
+
+/* ─── TRAINING ─── */
+const WDAYS  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const TTYPES = ['Kickboxing','Gym','Run','Sparring','Conditioning','Rest'];
+let trainData = sg('wc_train') || {};
+
+function getWeekKey() {
+  const now = new Date(), dow = now.getDay();
+  const mon = new Date(now); mon.setDate(now.getDate() - (dow===0?6:dow-1));
+  return mon.toISOString().slice(0,10);
+}
+function getWeekDates() {
+  const now = new Date(), dow = now.getDay();
+  const mon = new Date(now); mon.setDate(now.getDate() - (dow===0?6:dow-1));
+  return Array.from({length:7},(_,i)=>{ const d=new Date(mon); d.setDate(mon.getDate()+i); return d; });
+}
+
+function renderTraining() {
+  const wk = getWeekKey();
+  if (!trainData[wk]) trainData[wk] = {};
+  const week = trainData[wk];
+  const sessions = Object.values(week).filter(v => v && v!=='Rest').length;
+  const ring = document.getElementById('trainRing');
+  if (ring) ring.style.borderColor = sessions>=6?'var(--green)':sessions>=4?'var(--gold)':'var(--border2)';
+  const cnt = document.getElementById('trainCount'); if (cnt) cnt.textContent = sessions;
+  const lbl = document.getElementById('trainLabel');
+  if (lbl) lbl.textContent = sessions===0?'No sessions yet':sessions>=6?'Target hit 🔥':sessions>=4?'Strong week':'Keep building';
+  const sub = document.getElementById('trainSub');
+  if (sub) sub.textContent = sessions+'/6 this week';
+  const el = document.getElementById('trainDays'); if (!el) return;
+  const today = new Date().toDateString();
+  el.innerHTML = getWeekDates().map(d => {
+    const key = d.toISOString().slice(0,10);
+    const val = week[key] || null;
+    const isT = d.toDateString()===today;
+    const pills = TTYPES.map(t => `<button class="train-pill ${val===t?'active':''} ${t==='Rest'?'rest-pill':''}" onclick="logTrain('${key}','${t}')">${t}</button>`).join('');
+    return `<div class="train-day">
+      <div class="train-day-lbl ${isT?'today-lbl':''}">${WDAYS[d.getDay()].slice(0,2)}<br><span style="font-size:11px;font-weight:800;">${d.getDate()}</span></div>
+      <div style="flex:1;display:flex;gap:3px;flex-wrap:wrap;">${pills}</div>
+    </div>`;
+  }).join('');
+}
+function logTrain(dateKey, type) {
+  const wk = getWeekKey();
+  if (!trainData[wk]) trainData[wk] = {};
+  trainData[wk][dateKey] = trainData[wk][dateKey]===type ? null : type;
+  ss('wc_train', trainData); renderTraining();
+}
+renderTraining();
+
+/* ─── TODOS ─── */
+const TAG_MAP = { m:{cls:'tag-m',lbl:'Mindset'}, b:{cls:'tag-b',lbl:'Business'}, p:{cls:'tag-p',lbl:'Personal'}, h:{cls:'tag-h',lbl:'Health'} };
+let todos = sg('wc_todos') || [
+  {id:'t1',text:'Journal',tag:'m',done:false},
+  {id:'t2',text:'Manifest / Meditate',tag:'m',done:false},
+  {id:'t3',text:'Deep work — SmartEdge',tag:'b',done:false},
+  {id:'t4',text:'JYSK shift',tag:'b',done:false},
+  {id:'t5',text:'Train',tag:'h',done:false},
+];
+function saveTodos() { ss('wc_todos', todos); }
+
+function renderTodosInto(container, progId, pbId) {
+  const done=todos.filter(t=>t.done).length, total=todos.length, pct=total?Math.round(done/total*100):0;
+  const prog=document.getElementById(progId); if(prog) prog.textContent=done+'/'+total+' done';
+  const pb=document.getElementById(pbId); if(pb) pb.style.width=pct+'%';
+  const el=document.getElementById(container); if(!el) return;
+  if (!todos.length) { el.innerHTML='<div style="font-size:11px;color:var(--text3);padding:8px 0;font-family:var(--mono);">No tasks. Add one below.</div>'; return; }
+  el.innerHTML = todos.map(t => `
+    <div class="todo-item">
+      <div class="chk ${t.done?'done':''}" onclick="toggleTodo('${t.id}')"></div>
+      <div class="todo-txt ${t.done?'done':''}" onclick="toggleTodo('${t.id}')">${t.text}</div>
+      <span class="ttag ${TAG_MAP[t.tag]?.cls||'tag-m'}">${TAG_MAP[t.tag]?.lbl||t.tag}</span>
+      <button class="item-del" onclick="deleteTodo('${t.id}')">✕</button>
+    </div>`).join('');
+}
+function renderTodos()         { renderTodosInto('todosList','todosProg','todosPb'); }
+function renderMandatePreview(){ renderTodosInto('mandatePreview','mandateProg','mandatePb'); }
+function toggleTodo(id)  { todos=todos.map(t=>t.id===id?{...t,done:!t.done}:t); saveTodos(); renderTodos(); renderMandatePreview(); }
+function deleteTodo(id)  { todos=todos.filter(t=>t.id!==id); saveTodos(); renderTodos(); renderMandatePreview(); }
+function addTodo() {
+  const inp=document.getElementById('todoInp'), tag=document.getElementById('todoTag');
+  if(!inp||!inp.value.trim()) return;
+  todos.unshift({id:'l'+Date.now(),text:inp.value.trim(),tag:tag.value,done:false});
+  inp.value=''; saveTodos(); renderTodos(); renderMandatePreview();
+}
+function syncNotion() {
+  ['notionStatus','todosStatus'].forEach(id=>{ const e=document.getElementById(id); if(e){e.textContent='Claude.ai → "Pull my Operation Mandate todos from Notion"'; setTimeout(()=>e.textContent='',7000);} });
+}
+function pushNotion() {
+  const e=document.getElementById('todosStatus'); if(e){ e.textContent='Claude.ai → "Push my mandate todos to Notion"'; setTimeout(()=>e.textContent='',7000); }
+}
+renderTodos(); renderMandatePreview();
+
+/* ─── CALENDAR ─── */
+let localEvents = sg('wc_events') || [];
+let calDate = new Date(), calView = 'month';
+function fmtD(d) { return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function evOn(ds) { return localEvents.filter(e=>e.date===ds); }
+
+function setCalView(v) {
+  calView=v;
+  ['Month','Week','Day'].forEach(x=>{ const b=document.getElementById('cv'+x); if(b) b.className='btn'+(v===x.toLowerCase()?' btn-gold':''); });
+  renderCal();
+}
+function navCal(d) {
+  if(calView==='day') calDate=new Date(calDate.getFullYear(),calDate.getMonth(),calDate.getDate()+d);
+  else if(calView==='week') calDate=new Date(calDate.getFullYear(),calDate.getMonth(),calDate.getDate()+d*7);
+  else calDate=new Date(calDate.getFullYear(),calDate.getMonth()+d,1);
+  renderCal();
+}
+function renderCal() {
+  const body=document.getElementById('calBody'), per=document.getElementById('calPeriod');
+  if(!body||!per) return;
+  const td=fmtD(new Date());
+  if(calView==='day') {
+    per.textContent=DAYS[calDate.getDay()]+' '+calDate.getDate()+' '+MONTHS[calDate.getMonth()];
+    const evs=evOn(fmtD(calDate));
+    body.innerHTML=evs.length?evs.map(e=>`<div class="ev-item"><div class="ev-dot" style="background:${e.color}"></div><div class="ev-name">${e.name}</div><div class="ev-time">${e.time}</div><button class="ev-del" onclick="deleteEvent('${e.id}')">✕</button></div>`).join(''):'<div style="font-size:11px;color:var(--text3);padding:8px 0;font-family:var(--mono);">No events</div>';
+  } else if(calView==='week') {
+    const dow=calDate.getDay(), ws=new Date(calDate); ws.setDate(calDate.getDate()-(dow===0?6:dow-1));
+    const we=new Date(ws); we.setDate(ws.getDate()+6);
+    per.textContent=ws.getDate()+' '+MONS[ws.getMonth()]+' – '+we.getDate()+' '+MONS[we.getMonth()];
+    let rows='';
+    for(let i=0;i<7;i++){
+      const d=new Date(ws); d.setDate(ws.getDate()+i);
+      const ds=fmtD(d), isT=ds===td, evs=evOn(ds);
+      rows+=`<div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);">
+        <div style="font-size:9px;font-weight:700;color:${isT?'var(--gold)':'var(--text3)'};width:28px;min-width:28px;font-family:var(--mono);">${WDS[d.getDay()]}<br><span style="font-size:12px;">${d.getDate()}</span></div>
+        <div style="flex:1;">${evs.length?evs.map(e=>`<div style="font-size:10px;background:var(--bg2);border-radius:var(--r);padding:3px 8px;margin-bottom:3px;display:flex;gap:5px;align-items:center;font-family:var(--mono);"><div style="width:4px;height:4px;border-radius:50%;background:${e.color};"></div>${e.name}</div>`).join(''):'<span style="font-size:10px;color:var(--text3);font-family:var(--mono);">—</span>'}</div>
+      </div>`;
+    }
+    body.innerHTML=rows;
+  } else {
+    const y=calDate.getFullYear(), m=calDate.getMonth();
+    per.textContent=MONTHS[m]+' '+y;
+    const first=new Date(y,m,1).getDay(), total=new Date(y,m+1,0).getDate();
+    const startDow=first===0?6:first-1;
+    let html=WDS.map(d=>`<div class="cal-dlbl">${d}</div>`).join('');
+    for(let i=0;i<startDow;i++) html+=`<div class="cal-day empty"></div>`;
+    for(let d=1;d<=total;d++){
+      const ds=y+'-'+String(m+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      html+=`<div class="cal-day ${ds===td?'today':''} ${evOn(ds).length?'has-ev':''}" onclick="calClick('${ds}')">${d}</div>`;
+    }
+    body.innerHTML=`<div class="cal-grid">${html}</div>`;
+  }
+  renderCalUpcoming();
+}
+function calClick(ds){ calDate=new Date(ds+'T12:00:00'); setCalView('day'); }
+function addEvent(){
+  const title=document.getElementById('evTitle').value.trim();
+  const date=document.getElementById('evDate').value;
+  const start=document.getElementById('evStart').value;
+  const color=document.getElementById('evColor').value;
+  const end=document.getElementById('evEnd').value;
+  const st=document.getElementById('calStatus');
+  if(!title||!date||!start){if(st)st.textContent='Fill in title, date and start time.';return;}
+  localEvents.push({id:'ev'+Date.now(),date,name:title,time:start,endTime:end,color,local:true});
+  ss('wc_events',localEvents);
+  ['evTitle','evDate','evStart','evEnd'].forEach(id=>{const e=document.getElementById(id);if(e)e.value='';});
+  if(st){st.textContent='Saved.';setTimeout(()=>st.textContent='',2000);}
+  renderCal();
+}
+function deleteEvent(id){ localEvents=localEvents.filter(e=>e.id!==id); ss('wc_events',localEvents); renderCal(); }
+function renderCalUpcoming(){
+  const el=document.getElementById('calUpcoming');if(!el)return;
+  const td=fmtD(new Date());
+  const up=localEvents.filter(e=>e.date>=td).sort((a,b)=>a.date.localeCompare(b.date)||a.time.localeCompare(b.time)).slice(0,8);
+  el.innerHTML=up.length?up.map(e=>`<div class="ev-item"><div class="ev-dot" style="background:${e.color}"></div><div class="ev-name">${e.name}</div><div class="ev-time">${e.date===td?e.time:e.date.slice(5).replace('-','/')}</div><button class="ev-del" onclick="deleteEvent('${e.id}')">✕</button></div>`).join(''):'<div style="font-size:11px;color:var(--text3);font-family:var(--mono);">Nothing coming up</div>';
+}
+setCalView('month');
+
+/* ─── PORTFOLIO ─── */
+const STOCKS=[
+  {ticker:'NVDA',name:'Nvidia',      shares:5,  color:'#4caf7d'},
+  {ticker:'KTOS',name:'Kratos Def.', shares:40, color:'#4a90d9'},
+  {ticker:'PLTR',name:'Palantir',    shares:15, color:'#c9973a'},
+  {ticker:'RTX', name:'Raytheon',    shares:8,  color:'#9b7fd4'},
+];
+async function loadPF(){
+  const cache=sg('pf_cache');
+  if(cache&&Date.now()-cache.ts<300000){renderPF(cache.data,cache.eur);return;}
+  const st=document.getElementById('pfStatus');
+  try{
+    const sym=STOCKS.map(s=>s.ticker).join(',');
+    const r=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/spark?symbols='+sym+'&range=1d&interval=5m'));
+    const j=await r.json(); const data=JSON.parse(j.contents);
+    const prices={};
+    for(const s of STOCKS){const sp=data.spark?.result?.find(r=>r.symbol===s.ticker);if(sp)prices[s.ticker]={price:sp.response?.[0]?.meta?.regularMarketPrice||0,prev:sp.response?.[0]?.meta?.previousClose||0};}
+    const er=await fetch('https://api.allorigins.win/get?url='+encodeURIComponent('https://query1.finance.yahoo.com/v8/finance/spark?symbols=EURUSD%3DX&range=1d&interval=5m'));
+    const ej=await er.json(); const ed=JSON.parse(ej.contents);
+    const eur=ed.spark?.result?.[0]?.response?.[0]?.meta?.regularMarketPrice||0.92;
+    ss('pf_cache',{ts:Date.now(),data:prices,eur});
+    if(st) st.textContent='Updated '+new Date().toLocaleTimeString();
+    renderPF(prices,eur);
+  }catch(e){
+    if(st) st.textContent='Price fetch failed';
+    const c=sg('pf_cache'); if(c) renderPF(c.data,c.eur||0.92);
+  }
+}
+function renderPF(prices,eur){
+  let tv=0;
+  const vals=STOCKS.map(s=>{const p=prices[s.ticker];return p?p.price*s.shares:0;});
+  const maxV=Math.max(...vals,1);
+  const rows=STOCKS.map((s,i)=>{
+    const p=prices[s.ticker];
+    if(!p)return`<div class="stock-row"><span class="stock-ticker">${s.ticker}</span><div class="stock-bar-wrap"></div><span class="stock-price" style="color:var(--text3);">—</span><span class="stock-chg" style="color:var(--text3);">—</span></div>`;
+    const chg=(p.price-p.prev)/p.prev*100; tv+=vals[i];
+    return`<div class="stock-row"><span class="stock-ticker">${s.ticker}</span><div class="stock-bar-wrap"><div class="stock-bar" style="width:${Math.round(vals[i]/maxV*100)}%;background:${s.color};"></div></div><span class="stock-price">$${p.price.toFixed(1)}</span><span class="stock-chg" style="color:${chg>=0?'#4caf7d':'#e05c5c'};">${chg>=0?'+':''}${chg.toFixed(1)}%</span></div>`;
+  }).join('');
+  const t=document.getElementById('pfTotal');if(t)t.textContent='$'+Math.round(tv).toLocaleString();
+  const e=document.getElementById('pfEur');if(e&&eur>0)e.textContent='≈ €'+Math.round(tv*eur).toLocaleString();
+  const ps=document.getElementById('pfStocks');if(ps)ps.innerHTML=rows;
+}
+loadPF(); setInterval(loadPF,300000);
+
+/* ─── WAYNE STANDARD ─── */
+const WS_HABITS=[
+  {id:'am',   label:'5–6 AM rise',  icon:'☀'},
+  {id:'med',  label:'Meditate',     icon:'🧘'},
+  {id:'jrn',  label:'Journal',      icon:'📓'},
+  {id:'om',   label:'Finished OM',  icon:'✅'},
+  {id:'dw',   label:'Deep work',    icon:'⚡'},
+  {id:'diet', label:'Diet on point',icon:'🥗'},
+  {id:'train',label:'Train',        icon:'🥊'},
+  {id:'him',  label:'Him',          icon:'👑'},
+];
+function getTodayKey(){const n=new Date();return n.getFullYear()+'-'+String(n.getMonth()+1).padStart(2,'0')+'-'+String(n.getDate()).padStart(2,'0');}
+function getWD(k){return sg('wayne_'+k)||{habits:{},rating:null,reflection:''};}
+function saveWD(k,data){ss('wayne_'+k,data);}
+
+function renderWayne(){
+  const key=getTodayKey(),data=getWD(key);
+  const checked=Object.values(data.habits).filter(Boolean).length;
+  const sr=document.getElementById('wsPanelScore');
+  if(sr){
+    sr.textContent=checked+'/8'; sr.className='ws-score-ring';
+    if(checked<=3)sr.classList.add('low');else if(checked<=5)sr.classList.add('mid');else if(checked<8)sr.classList.add('high');else sr.classList.add('perfect');
+  }
+  const hc=document.getElementById('wsPanelHabits');
+  if(hc)hc.innerHTML=WS_HABITS.map(h=>`
+    <div class="ws-habit" onclick="toggleWsHabit('${h.id}','${key}')">
+      <div class="ws-chk ${data.habits[h.id]?'done':''}"></div>
+      <span style="font-size:14px;width:20px;text-align:center;">${h.icon}</span>
+      <div class="ws-habit-name ${data.habits[h.id]?'done':''}">${h.label}</div>
+    </div>`).join('');
+  const rg=document.getElementById('wsRatingGrid');
+  if(rg)rg.innerHTML=[...Array(10)].map((_,i)=>{const n=i+1;return`<button class="ws-rating-btn ${data.rating===n?'active':''}" onclick="setWsRating(${n},'${key}')">${n}</button>`;}).join('');
+  const rf=document.getElementById('wsReflection');if(rf)rf.value=data.reflection||'';
+  renderWsStats(); renderWsStreak(); renderWsChart();
+}
+function toggleWsHabit(hid,key){const data=getWD(key);data.habits[hid]=!data.habits[hid];saveWD(key,data);renderWayne();}
+function setWsRating(n,key){const data=getWD(key);data.rating=n;saveWD(key,data);renderWayne();}
+function saveWayne(){
+  const key=getTodayKey(),data=getWD(key);
+  const rf=document.getElementById('wsReflection');if(rf)data.reflection=rf.value;
+  saveWD(key,data);
+  const st=document.getElementById('wayneStatus');if(st){st.textContent='Saved ✓';setTimeout(()=>st.textContent='',2000);}
+}
+function pushWayne(){const st=document.getElementById('wayneStatus');if(st)st.textContent='Claude.ai → "Update my Wayne Standard Notion with today\'s data"';}
+function renderWsStats(){
+  const scores=[];let streak=0;
+  for(let i=0;i<30;i++){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const checked=Object.values(getWD(k).habits).filter(Boolean).length;
+    if(i<7&&checked>0)scores.push(checked);
+    if(streak===i&&checked>=5)streak++;
+  }
+  const avg=scores.length?Math.round(scores.reduce((a,b)=>a+b,0)/scores.length):0;
+  const best=scores.length?Math.max(...scores):0;
+  const sc=document.getElementById('wsStats');
+  if(sc)sc.innerHTML=[['Avg',avg?avg+'/8':'—'],['Best',best?best+'/8':'—'],['Logged',scores.length+'d'],['Streak',streak+'d']].map(([l,v])=>`<div class="ws-stat"><div class="ws-stat-num">${v}</div><div class="ws-stat-lbl">${l}</div></div>`).join('');
+}
+function renderWsStreak(){
+  const c=document.getElementById('wsStreak30');if(!c)return;
+  let html='';
+  for(let i=29;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    const n=Object.values(getWD(k).habits).filter(Boolean).length;
+    html+=`<div class="ws-dot ${n>=8?'full':n>=4?'partial':''}" title="${k}: ${n}/8"></div>`;
+  }
+  c.innerHTML=html;
+}
+let wsChartInst=null;
+function renderWsChart(){
+  const canvas=document.getElementById('wsWeekChart');if(!canvas)return;
+  const labels=[],scores=[];
+  const wd=['Su','Mo','Tu','We','Th','Fr','Sa'];
+  for(let i=6;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    labels.push(wd[d.getDay()]);
+    scores.push(Object.values(getWD(k).habits).filter(Boolean).length);
+  }
+  if(wsChartInst){wsChartInst.destroy();wsChartInst=null;}
+  wsChartInst=new Chart(canvas,{type:'bar',data:{labels,datasets:[{data:scores,backgroundColor:scores.map(v=>v>=8?'#4a90d9':v>=5?'#c9973a':'#1e1e1e'),borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+'/8'}}},scales:{x:{ticks:{color:'#383838',font:{size:9,family:'DM Mono'}},grid:{display:false}},y:{min:0,max:8,ticks:{color:'#383838',font:{size:9,family:'DM Mono'},stepSize:2},grid:{color:'#141414'}}}}});
+}
+
+/* ─── BODY WEIGHT ─── */
+let wData=sg('wc_weight')||[
+  {date:'May 20',val:78.5},{date:'May 21',val:78.2},{date:'May 22',val:77.9},
+  {date:'May 23',val:78.1},{date:'May 24',val:77.8},{date:'May 25',val:77.6},{date:'May 27',val:77.4}
+];
+let bwChartInst=null;
+function renderBW(){
+  const l=wData[wData.length-1];
+  const v=document.getElementById('bwVal');if(v)v.textContent=l?l.val+' kg':'—';
+  if(wData.length>1){
+    const delta=wData[wData.length-1].val-wData[wData.length-2].val;
+    const d=document.getElementById('bwDelta');
+    if(d){d.textContent=(delta>=0?'+':'')+delta.toFixed(1)+' kg vs prev';d.style.color=delta>0?'#e05c5c':'#4caf7d';}
+  }
+  if(bwChartInst){bwChartInst.destroy();bwChartInst=null;}
+  const canvas=document.getElementById('bwChart');if(!canvas)return;
+  bwChartInst=new Chart(canvas,{type:'line',data:{labels:wData.map(d=>d.date),datasets:[{data:wData.map(d=>d.val),borderColor:'#c9973a',borderWidth:1.5,pointRadius:2,pointBackgroundColor:'#c9973a',tension:.4,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#383838',font:{size:9,family:'DM Mono'}},grid:{display:false}},y:{ticks:{color:'#383838',font:{size:9,family:'DM Mono'}},grid:{color:'#141414'},min:Math.min(...wData.map(d=>d.val))-1,max:Math.max(...wData.map(d=>d.val))+1}}}});
+  const log=document.getElementById('bwLog');
+  if(log)log.innerHTML=wData.slice(-5).reverse().map(d=>`<div class="ev-item"><div class="ev-name">${d.date}</div><div class="ev-time">${d.val} kg</div></div>`).join('');
+}
+function logBW(){const inp=document.getElementById('bwInp'),v=parseFloat(inp.value);if(!v)return;const n=new Date(),lbl=n.getDate()+'/'+(n.getMonth()+1);wData.push({date:lbl,val:v});if(wData.length>60)wData.shift();inp.value='';ss('wc_weight',wData);renderBW();}
+
+/* ─── SAVINGS ─── */
+let activeSavTab='personal';
+let savStore=sg('wc_sav')||{
+  personal:[{date:'Apr',val:200},{date:'May 1',val:350},{date:'May 8',val:520},{date:'May 15',val:680},{date:'May 22',val:850},{date:'Jun 1',val:1000}],
+  business:[{date:'Apr',val:0},{date:'May 1',val:150},{date:'May 8',val:300},{date:'May 15',val:450},{date:'Jun 1',val:600}]
+};
+let savChartInst=null;
+function setSavTab(tab,el){
+  activeSavTab=tab;
+  document.getElementById('savTabPers').className='btn'+(tab==='personal'?' btn-gold':'');
+  document.getElementById('savTabBiz').className='btn'+(tab==='business'?' btn-gold':'');
+  renderSav();
+}
+function renderSav(){
+  const data=savStore[activeSavTab],l=data[data.length-1];
+  const v=document.getElementById('savVal');if(v)v.textContent=l?'€'+l.val.toLocaleString():'—';
+  if(savChartInst){savChartInst.destroy();savChartInst=null;}
+  const canvas=document.getElementById('savChart');if(!canvas)return;
+  const color=activeSavTab==='personal'?'#4caf7d':'#c9973a';
+  savChartInst=new Chart(canvas,{type:'line',data:{labels:data.map(d=>d.date),datasets:[{data:data.map(d=>d.val),borderColor:color,borderWidth:1.5,pointRadius:2,pointBackgroundColor:color,tension:.4,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#383838',font:{size:9,family:'DM Mono'}},grid:{display:false}},y:{ticks:{color:'#383838',font:{size:9,family:'DM Mono'},callback:v=>'€'+v},grid:{color:'#141414'},min:0}}}});
+  const log=document.getElementById('savLog');
+  if(log)log.innerHTML=data.slice(-5).reverse().map(d=>`<div class="ev-item"><div class="ev-name">${d.date}</div><div class="ev-time">€${d.val.toLocaleString()}</div></div>`).join('');
+}
+function logSav(){const inp=document.getElementById('savInp'),v=parseFloat(inp.value);if(!v)return;const n=new Date(),lbl=n.getDate()+'/'+(n.getMonth()+1);savStore[activeSavTab].push({date:lbl,val:v});if(savStore[activeSavTab].length>60)savStore[activeSavTab].shift();inp.value='';ss('wc_sav',savStore);renderSav();}
+
+/* ─── NET WORTH ─── */
+let nwItems=sg('wc_nw')||[
+  {id:'nw1',label:'ING Savings',val:1000,color:'#4caf7d'},
+  {id:'nw2',label:'SmartEdge AI',val:500,color:'#c9973a'},
+  {id:'nw3',label:'Stock portfolio',val:0,color:'#4a90d9'},
+];
+function saveNW(){ss('wc_nw',nwItems);}
+function renderNW(){
+  const total=nwItems.reduce((s,i)=>s+i.val,0);
+  const t=document.getElementById('nwTotal');if(t)t.textContent='€'+total.toLocaleString();
+  const el=document.getElementById('nwItems');if(!el)return;
+  el.innerHTML=nwItems.map(item=>`
+    <div class="nw-row">
+      <div style="width:5px;height:5px;border-radius:50%;background:${item.color};flex-shrink:0;"></div>
+      <div class="nw-label">${item.label}</div>
+      <div class="nw-val" style="color:${item.color};">€${item.val.toLocaleString()}</div>
+      <button class="nw-del" onclick="deleteNW('${item.id}')">✕</button>
+    </div>`).join('');
+}
+function toggleNwForm(){const f=document.getElementById('nwForm');f.style.display=f.style.display==='none'?'block':'none';}
+function addNWItem(){
+  const lbl=document.getElementById('nwLabel').value.trim(), val=parseFloat(document.getElementById('nwAmt').value);
+  if(!lbl||isNaN(val))return;
+  const cols=['#4caf7d','#c9973a','#4a90d9','#9b7fd4','#e05c5c'];
+  nwItems.push({id:'nw'+Date.now(),label:lbl,val,color:cols[nwItems.length%cols.length]});
+  document.getElementById('nwLabel').value='';document.getElementById('nwAmt').value='';
+  document.getElementById('nwForm').style.display='none';
+  saveNW();renderNW();
+}
+function deleteNW(id){nwItems=nwItems.filter(i=>i.id!==id);saveNW();renderNW();}
+renderNW();
+
+/* ─── INIT ─── */
+setTimeout(()=>{renderBW();renderSav();renderBodyGoals();},100);
+</script>
+</body>
+</html>
