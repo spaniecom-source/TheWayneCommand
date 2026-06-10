@@ -1130,8 +1130,6 @@ function renderWsChart(){
 
 /* ─── BODY WEIGHT ─── */
 let wData=sg('wc_weight')||[
-  {date:'May 20',val:78.5},{date:'May 21',val:78.2},{date:'May 22',val:77.9},
-  {date:'May 23',val:78.1},{date:'May 24',val:77.8},{date:'May 25',val:77.6},{date:'May 27',val:77.4}
 ];
 let bwChartInst=null;
 function renderBW(){
@@ -1177,9 +1175,7 @@ function logSav(){const inp=document.getElementById('savInp'),v=parseFloat(inp.v
 
 /* ─── NET WORTH ─── */
 let nwItems=sg('wc_nw')||[
-  {id:'nw1',label:'ING Savings',val:1000,color:'#4caf7d'},
-  {id:'nw2',label:'SmartEdge AI',val:500,color:'#c9973a'},
-  {id:'nw3',label:'Stock portfolio',val:0,color:'#4a90d9'},
+
 ];
 function saveNW(){ss('wc_nw',nwItems);}
 function renderNW(){
