@@ -1129,8 +1129,7 @@ function renderWsChart(){
 }
 
 /* ─── BODY WEIGHT ─── */
-let wData=sg('wc_weight')||[
-];
+let wData=sg('wc_weight')||[];
 let bwChartInst=null;
 function renderBW(){
   const l=wData[wData.length-1];
@@ -1174,8 +1173,7 @@ function renderSav(){
 function logSav(){const inp=document.getElementById('savInp'),v=parseFloat(inp.value);if(!v)return;const n=new Date(),lbl=n.getDate()+'/'+(n.getMonth()+1);savStore[activeSavTab].push({date:lbl,val:v});if(savStore[activeSavTab].length>60)savStore[activeSavTab].shift();inp.value='';ss('wc_sav',savStore);renderSav();}
 
 /* ─── NET WORTH ─── */
-let nwItems=sg('wc_nw')||[
-];
+let nwItems=sg('wc_nw')||[];
 function saveNW(){ss('wc_nw',nwItems);}
 function renderNW(){
   const total=nwItems.reduce((s,i)=>s+i.val,0);
